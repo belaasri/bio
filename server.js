@@ -17,67 +17,102 @@ app.use(express.json());
 app.use(express.static('public'));
 
 app.get('/download', async (req, res) => {
-    const { videoId, format } = req.query;
-
-    if (!videoId) {
-        return res.status(400).send('Video ID is required');
-    }
-
     try {
+        const { videoId, format } = req.query;
+
+        if (!videoId) {
+            return res.status(400).json({ error: 'Video ID is required' });
+        }
+
         const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+        // Verify video exists and is available
         const videoInfo = await ytdl.getInfo(videoUrl);
         const videoTitle = videoInfo.videoDetails.title.replace(/[^\w\s]/gi, '');
-        const outputPath = path.join(downloadsDir, `${videoTitle}.${format}`);
 
         if (format === 'mp4') {
-            const videoStream = ytdl(videoUrl, { 
-                quality: 'highest',
-                filter: 'videoandaudio'
-            });
-
+            // Get highest quality format
+            const format = ytdl.chooseFormat(videoInfo.formats, { quality: 'highest' });
+            
             res.header('Content-Disposition', `attachment; filename="${videoTitle}.mp4"`);
             res.header('Content-Type', 'video/mp4');
 
-            videoStream.pipe(res);
+            const stream = ytdl(videoUrl, {
+                format: format,
+                quality: 'highest'
+            });
 
-            videoStream.on('error', (error) => {
+            // Handle stream errors
+            stream.on('error', (error) => {
                 console.error('Stream error:', error);
                 if (!res.headersSent) {
-                    res.status(500).send('Download failed');
+                    res.status(500).json({ error: 'Download failed: ' + error.message });
                 }
             });
 
+            // Handle progress
+            let downloadedBytes = 0;
+            stream.on('data', (chunk) => {
+                downloadedBytes += chunk.length;
+                // You could emit progress here if needed
+            });
+
+            // Pipe the stream to response
+            stream.pipe(res);
+
         } else if (format === 'mp3') {
-            const audioStream = ytdl(videoUrl, { 
+            res.header('Content-Disposition', `attachment; filename="${videoTitle}.mp3"`);
+            res.header('Content-Type', 'audio/mpeg');
+
+            const stream = ytdl(videoUrl, {
                 quality: 'highestaudio',
                 filter: 'audioonly'
             });
 
-            res.header('Content-Disposition', `attachment; filename="${videoTitle}.mp3"`);
-            res.header('Content-Type', 'audio/mpeg');
-
-            ffmpeg(audioStream)
+            ffmpeg(stream)
                 .toFormat('mp3')
+                .audioBitrate(128)
                 .on('error', (error) => {
                     console.error('FFmpeg error:', error);
                     if (!res.headersSent) {
-                        res.status(500).send('Conversion failed');
+                        res.status(500).json({ error: 'Conversion failed: ' + error.message });
                     }
+                })
+                .on('progress', (progress) => {
+                    // You could emit progress here if needed
                 })
                 .pipe(res);
 
         } else {
-            res.status(400).send('Invalid format specified');
+            res.status(400).json({ error: 'Invalid format specified' });
         }
 
     } catch (error) {
         console.error('Download error:', error);
         if (!res.headersSent) {
-            res.status(500).send('An error occurred');
+            res.status(500).json({ 
+                error: 'Download failed: ' + (error.message || 'Unknown error'),
+                details: error.stack
+            });
         }
     }
 });
 
+// Error handling middleware
+app.use((error, req, res, next) => {
+    console.error('Server error:', error);
+    res.status(500).json({ 
+        error: 'Server error: ' + error.message,
+        details: error.stack
+    });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
+    console.log(`Downloads directory: ${downloadsDir}`);
 });
