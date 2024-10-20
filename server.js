@@ -7,15 +7,16 @@ const path = require('path');
 const app = express();
 const port = 3000;
 
-// Create downloads directory if it doesn't exist
+// Serve static files from the 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Ensure downloads directory exists
 const downloadsDir = path.join(__dirname, 'downloads');
 if (!fs.existsSync(downloadsDir)) {
     fs.mkdirSync(downloadsDir);
 }
 
-app.use(express.json());
-app.use(express.static('public'));
-
+// Download video route
 app.get('/download', async (req, res) => {
     try {
         const { videoId, format } = req.query;
@@ -26,7 +27,7 @@ app.get('/download', async (req, res) => {
 
         const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
-        // Verify video exists and is available
+        // Fetch video info
         const videoInfo = await ytdl.getInfo(videoUrl);
         const videoTitle = videoInfo.videoDetails.title.replace(/[^\w\s]/gi, '');
 
@@ -54,20 +55,14 @@ app.get('/download', async (req, res) => {
         } else {
             res.status(400).json({ error: 'Invalid format specified' });
         }
-
     } catch (error) {
         res.status(500).json({ 
-            error: 'Download failed: ' + (error.message || 'Unknown error'),
-            details: error.stack
+            error: 'Download failed: ' + error.message 
         });
     }
 });
 
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
+// Start the server
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
-    console.log(`Downloads directory: ${downloadsDir}`);
 });
