@@ -7,55 +7,77 @@ const path = require('path');
 const app = express();
 const port = 3000;
 
+// Create downloads directory if it doesn't exist
+const downloadsDir = path.join(__dirname, 'downloads');
+if (!fs.existsSync(downloadsDir)) {
+    fs.mkdirSync(downloadsDir);
+}
+
 app.use(express.json());
 app.use(express.static('public'));
 
 app.get('/download', async (req, res) => {
-  const { videoId, format } = req.query;
+    const { videoId, format } = req.query;
 
-  if (!videoId) {
-    return res.status(400).send('Video ID is required');
-  }
-
-  try {
-    const videoInfo = await ytdl.getInfo(videoId);
-    const videoTitle = videoInfo.videoDetails.title.replace(/[^\w\s]/gi, '');
-    const outputPath = path.join(__dirname, 'downloads', `${videoTitle}.${format}`);
-
-    if (format === 'mp4') {
-      ytdl(videoId, { quality: 'highest' })
-        .pipe(fs.createWriteStream(outputPath))
-        .on('finish', () => {
-          res.download(outputPath, `${videoTitle}.mp4`, (err) => {
-            if (err) {
-              console.error('Error sending file:', err);
-            }
-            fs.unlinkSync(outputPath);
-          });
-        });
-    } else if (format === 'mp3') {
-      ytdl(videoId, { quality: 'highestaudio' })
-        .pipe(ffmpeg()
-          .toFormat('mp3')
-          .on('end', () => {
-            res.download(outputPath, `${videoTitle}.mp3`, (err) => {
-              if (err) {
-                console.error('Error sending file:', err);
-              }
-              fs.unlinkSync(outputPath);
-            });
-          })
-        )
-        .save(outputPath);
-    } else {
-      res.status(400).send('Invalid format');
+    if (!videoId) {
+        return res.status(400).send('Video ID is required');
     }
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).send('An error occurred');
-  }
+
+    try {
+        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        const videoInfo = await ytdl.getInfo(videoUrl);
+        const videoTitle = videoInfo.videoDetails.title.replace(/[^\w\s]/gi, '');
+        const outputPath = path.join(downloadsDir, `${videoTitle}.${format}`);
+
+        if (format === 'mp4') {
+            const videoStream = ytdl(videoUrl, { 
+                quality: 'highest',
+                filter: 'videoandaudio'
+            });
+
+            res.header('Content-Disposition', `attachment; filename="${videoTitle}.mp4"`);
+            res.header('Content-Type', 'video/mp4');
+
+            videoStream.pipe(res);
+
+            videoStream.on('error', (error) => {
+                console.error('Stream error:', error);
+                if (!res.headersSent) {
+                    res.status(500).send('Download failed');
+                }
+            });
+
+        } else if (format === 'mp3') {
+            const audioStream = ytdl(videoUrl, { 
+                quality: 'highestaudio',
+                filter: 'audioonly'
+            });
+
+            res.header('Content-Disposition', `attachment; filename="${videoTitle}.mp3"`);
+            res.header('Content-Type', 'audio/mpeg');
+
+            ffmpeg(audioStream)
+                .toFormat('mp3')
+                .on('error', (error) => {
+                    console.error('FFmpeg error:', error);
+                    if (!res.headersSent) {
+                        res.status(500).send('Conversion failed');
+                    }
+                })
+                .pipe(res);
+
+        } else {
+            res.status(400).send('Invalid format specified');
+        }
+
+    } catch (error) {
+        console.error('Download error:', error);
+        if (!res.headersSent) {
+            res.status(500).send('An error occurred');
+        }
+    }
 });
 
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+    console.log(`Server running at http://localhost:${port}`);
 });
