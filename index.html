@@ -9,24 +9,28 @@
 <body>
     <div class="container">
         <h1>YouTube Video Downloader</h1>
-        <p class="subtitle">download online videos, download online video to mp3 for free</p>
-        
-        <form id="downloadForm">
-            <div class="search-container">
-                <input type="text" id="videoUrl" placeholder="Paste YouTube video URL here" required>
-                <button type="submit">Search</button>
-            </div>
+        <p class="subtitle">Download online videos, download online video to mp3 for free</p>
+
+        <form id="downloadForm" class="search-container">
+            <input type="text" id="videoUrl" placeholder="Paste YouTube URL here" required>
+            <button type="submit">Search</button>
         </form>
 
         <div id="result" class="hidden">
             <h2 id="videoTitle"></h2>
-            <img id="videoThumbnail" alt="Video Thumbnail">
+            <img id="videoThumbnail" alt="Video thumbnail">
             <p><strong>Views:</strong> <span id="viewCount"></span></p>
             <p><strong>Likes:</strong> <span id="likeCount"></span></p>
             <p><strong>Description:</strong> <span id="videoDescription"></span></p>
+
+            <div id="downloadProgress" class="hidden">
+                <div id="progressBar"></div>
+                <p id="progressText"></p>
+            </div>
+
             <div class="download-options">
-                <a id="downloadMp4" class="download-btn" href="#">Download MP4</a>
-                <a id="downloadMp3" class="download-btn" href="#">Download MP3</a>
+                <a href="#" id="downloadMp4" class="download-btn">Download MP4</a>
+                <a href="#" id="downloadMp3" class="download-btn">Download MP3</a>
             </div>
         </div>
 
@@ -36,7 +40,6 @@
             YouTube is the biggest video sharing platform in the world, providing an excellent experience for users to upload, view, and share videos.
         </p>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
