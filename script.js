@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch(`/download?videoId=${videoId}&format=${format}`);
 
       if (!response.ok) {
-        const errorData = await response.text();  // Use text() instead of json()
+        const errorData = await response.text();
         throw new Error(errorData || 'Download failed');
       }
 
@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'GET',
         headers: {
           'x-rapidapi-host': 'youtube-v31.p.rapidapi.com',
-          'x-rapidapi-key': 'd1c53133acmsh2e7c470c0bfbb2ep1a074cjsne9dd522da151'
+          'x-rapidapi-key': 'your-api-key'
         }
       });
 
