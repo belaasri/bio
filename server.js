@@ -31,33 +31,10 @@ app.get('/download', async (req, res) => {
         const videoTitle = videoInfo.videoDetails.title.replace(/[^\w\s]/gi, '');
 
         if (format === 'mp4') {
-            // Get highest quality format
-            const format = ytdl.chooseFormat(videoInfo.formats, { quality: 'highest' });
-            
             res.header('Content-Disposition', `attachment; filename="${videoTitle}.mp4"`);
             res.header('Content-Type', 'video/mp4');
 
-            const stream = ytdl(videoUrl, {
-                format: format,
-                quality: 'highest'
-            });
-
-            // Handle stream errors
-            stream.on('error', (error) => {
-                console.error('Stream error:', error);
-                if (!res.headersSent) {
-                    res.status(500).json({ error: 'Download failed: ' + error.message });
-                }
-            });
-
-            // Handle progress
-            let downloadedBytes = 0;
-            stream.on('data', (chunk) => {
-                downloadedBytes += chunk.length;
-                // You could emit progress here if needed
-            });
-
-            // Pipe the stream to response
+            const stream = ytdl(videoUrl, { quality: 'highest' });
             stream.pipe(res);
 
         } else if (format === 'mp3') {
@@ -72,15 +49,6 @@ app.get('/download', async (req, res) => {
             ffmpeg(stream)
                 .toFormat('mp3')
                 .audioBitrate(128)
-                .on('error', (error) => {
-                    console.error('FFmpeg error:', error);
-                    if (!res.headersSent) {
-                        res.status(500).json({ error: 'Conversion failed: ' + error.message });
-                    }
-                })
-                .on('progress', (progress) => {
-                    // You could emit progress here if needed
-                })
                 .pipe(res);
 
         } else {
@@ -88,26 +56,13 @@ app.get('/download', async (req, res) => {
         }
 
     } catch (error) {
-        console.error('Download error:', error);
-        if (!res.headersSent) {
-            res.status(500).json({ 
-                error: 'Download failed: ' + (error.message || 'Unknown error'),
-                details: error.stack
-            });
-        }
+        res.status(500).json({ 
+            error: 'Download failed: ' + (error.message || 'Unknown error'),
+            details: error.stack
+        });
     }
 });
 
-// Error handling middleware
-app.use((error, req, res, next) => {
-    console.error('Server error:', error);
-    res.status(500).json({ 
-        error: 'Server error: ' + error.message,
-        details: error.stack
-    });
-});
-
-// Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
