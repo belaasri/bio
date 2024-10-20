@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video Downloader</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>YouTube Video Downloader</h1>
+        <p class="subtitle">download online videos, download online video to mp3 for free</p>
+        
+        <form id="downloadForm">
+            <div class="search-container">
+                <input type="text" id="videoUrl" placeholder="Paste YouTube video URL here" required>
+                <button type="submit">Search</button>
+            </div>
+        </form>
+
+        <div id="result" class="hidden">
+            <h2 id="videoTitle"></h2>
+            <img id="videoThumbnail" alt="Video Thumbnail">
+            <p><strong>Views:</strong> <span id="viewCount"></span></p>
+            <p><strong>Likes:</strong> <span id="likeCount"></span></p>
+            <p><strong>Description:</strong> <span id="videoDescription"></span></p>
+            <div class="download-options">
+                <a id="downloadMp4" class="download-btn" href="#">Download MP4</a>
+                <a id="downloadMp3" class="download-btn" href="#">Download MP3</a>
+            </div>
+        </div>
+
+        <div id="error" class="hidden"></div>
+
+        <p class="info-text">
+            YouTube is the biggest video sharing platform in the world, providing an excellent experience for users to upload, view, and share videos.
+        </p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
